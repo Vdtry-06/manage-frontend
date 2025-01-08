@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { deleteEmployee, listEmployees } from "../services/EmployeeService"
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 
 export const ListEmployeeComponent = () => {
@@ -27,17 +27,28 @@ export const ListEmployeeComponent = () => {
     const [employees, setEmployees] = useState([])
 
     const navigator = useNavigate();
+    const location = useLocation();
+
+    const searchParams = new URLSearchParams(location.search);
+    const searchKeyword = searchParams.get('keyword');
 
     useEffect(() => {
-        getAllEmployees();
-    }, [])
+        getAllEmployees(searchKeyword);
+    }, [searchKeyword])
 
-    function getAllEmployees() {
+    function getAllEmployees(searchKeyword = "") {
         listEmployees().then((response) => {
-            setEmployees(response.data);
+            if (searchKeyword) {
+                const filteredEmployees = response.data.filter(employee =>
+                    employee.firstName.toLowerCase().includes(searchKeyword.toLowerCase())
+                );
+                setEmployees(filteredEmployees);
+            } else {
+                setEmployees(response.data);
+            }
         }).catch(error => {
             console.error(error);
-        })
+        });
     }
 
     function addNewEmployee() {
@@ -51,7 +62,7 @@ export const ListEmployeeComponent = () => {
     function removeEmployee(id) {
         console.log(id);
         deleteEmployee(id).then(() => {
-            getAllEmployees();
+            getAllEmployees(searchKeyword);
         }).catch(error => {
             console.error(error);
         })
@@ -74,21 +85,24 @@ export const ListEmployeeComponent = () => {
             </thead>
 
             <tbody>
-                {
-                    employees.map(employee => 
+                {employees.length > 0 ? (
+                    employees.map(employee => (
                         <tr key={employee.id}>
-                            <td> {employee.id}</td>
-                            <td> {employee.firstName}</td>
-                            <td> {employee.lastName}</td>
-                            <td> {employee.email}</td>
+                            <td>{employee.id}</td>
+                            <td>{employee.firstName}</td>
+                            <td>{employee.lastName}</td>
+                            <td>{employee.email}</td>
                             <td>
                                 <button className="btn btn-info" onClick={() => updateEmployee(employee.id)}>Update</button>
-                                <button className="btn btn-danger" onClick={() => removeEmployee(employee.id)}
-                                    style={{marginLeft: '10px'}}
-                                >Delete</button>
+                                <button className="btn btn-danger" onClick={() => removeEmployee(employee.id)} style={{ marginLeft: '10px' }}>Delete</button>
                             </td>
-                        </tr>)
-                }
+                        </tr>
+                    ))
+                ) : (
+                    <tr>
+                        <td colSpan="5" className="text-center">No employees found</td>
+                    </tr>
+                )}
             </tbody>
         </table>
     </div>
